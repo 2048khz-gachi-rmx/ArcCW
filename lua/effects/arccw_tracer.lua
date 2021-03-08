@@ -7,8 +7,8 @@ EFFECT.BulletReachTime = 0.2        -- this will be overridden
 EFFECT.BulletLength = 0.1           -- how long the bullet tracer is; ratio of boolet length : travelled path
                                     -- (this means the more the bullet travelled, the longer it is)
 
-EFFECT.SmokeLagTime = 4           -- by how much time does the smoke lag behind the bullet
-EFFECT.SmokeFadeTime = 5          -- how much time the smoke needs to disappear; the smoke will be split into
+EFFECT.SmokeLagTime = 0.05           -- how much time until the smoke starts disappearing
+EFFECT.SmokeFadeTime = 0.02         -- how much time the smoke needs to disappear; the smoke will be split into
                                     -- a disappearing tail and not-yet-disappearing head
 EFFECT.DieTime = 0
 EFFECT.Color = Color(255, 255, 255)
@@ -83,13 +83,13 @@ function EFFECT:Render()
 
     -- headpos remains the same (bullet's head)
 
-    local smokeTail = math.Clamp( (ct - self.StartTime) / (self.BulletReachTime + self.SmokeLagTime), 0, 1 )
+    local smokeTail = math.Clamp( (ct - self.StartTime - self.SmokeLagTime) / self.BulletReachTime, 0, 1 )
 
     tailPos:Set(self.Diff)
     tailPos:Mul(smokeTail)
     tailPos:Add(self.StartPos)
 
-    local smokeYeet = math.max(0, (ct - self.StartTime - self.SmokeFadeTime) / (self.BulletReachTime + self.SmokeLagTime) )
+    local smokeYeet = math.max(0, (ct - self.StartTime - self.SmokeLagTime - self.SmokeFadeTime) / (self.BulletReachTime) )
 
     yeetPos:Set(self.Diff)
     yeetPos:Mul(smokeYeet)
@@ -118,13 +118,15 @@ function EFFECT:Render()
     render.SetMaterial(smoke)
     render.StartBeam(3)
         render.AddBeam(headPos, size * 0.5, 0, smoke_color)
-        render.AddBeam(tailPos, size * 0.25, headTailTex, smoke_color)
+        render.AddBeam(tailPos, size * 0.15, headTailTex, smoke_color)
         render.AddBeam(yeetPos, 0, headTailTex + tailYeetTex, transsmoke_color)
     render.EndBeam()
 
-    render.SetColorMaterialIgnoreZ()
+
+    --[[render.SetColorMaterialIgnoreZ()
     render.DrawSphere(tailPos, 4, 8, 8, color_white)
-    render.DrawSphere(yeetPos, 4, 8, 8, Colors.Red)
+    render.DrawSphere(yeetPos, 4, 8, 8, Colors.Red)]]
+    
 
     local bulTail = headFrac * (1 - self.BulletLength)
     yeetPos:Set(self.Diff)
