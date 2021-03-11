@@ -17,7 +17,7 @@ function ArcCW.Sway(cmd)
             sway = sway * ((wpn.BipodDispersion or 1) * wpn:GetBuff_Mult("Mult_BipodDispersion") or 0.1)
         end
         if sway > 0.05 then
-            ang.p = math.Clamp(ang.p + math.sin(CurTime() * 1.25) * FrameTime() * sway, -89, 89)
+            ang.p = math.Clamp(ang.p + math.sin(UnPredictedCurTime() * 1.25) * FrameTime() * sway, -89, 89)
             ang.y = ang.y + math.Rand(-1, 1) * FrameTime() * sway
             cmd:SetViewAngles(ang)
         end
