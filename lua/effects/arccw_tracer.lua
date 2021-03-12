@@ -4,18 +4,19 @@ EFFECT.StartTime = 0
 EFFECT.BulletReachTime = 0        -- this will be overridden
 
 
-EFFECT.BulletLength = 0.05           -- how long the bullet tracer is; ratio of boolet length : travelled path
+EFFECT.BulletLength = 0.15           -- how long the bullet tracer is; ratio of boolet length : travelled path
                                     -- (this means the more the bullet travelled, the longer it is)
-EFFECT.BulletMaxLength = 64          -- ... but the boolet will not be longer than X unites
-EFFECT.BulletMinLength = 32
+EFFECT.BulletMaxLength = 256          -- ... but the boolet will not be longer than X unites
+EFFECT.BulletMinLength = 192
 
-EFFECT.BulletLengthSize = 64 / 64   -- ratio of size:length
-EFFECT.MinBulletSize = 3
+EFFECT.BulletLengthSize = 0.5 / 64   -- ratio of size:length
+EFFECT.MinBulletSize = 2
+EFFECT.MaxBulletSize = 5
 
 EFFECT.MaxBulletTime = 0.15          -- if the bullet would take more than this time to arrive, it automatically picks a speed to match this time instead
 EFFECT.SmokeLagTime = 0.02          -- tail lags behind head by X seconds
-EFFECT.SmokeFadeTimeMult = 0.8        -- the smoke disappears this times as fast as the bullet travelled
-EFFECT.SmokeFadeLagTime = 0.05         -- yeet lags behind tail by X seconds (essentially the fade length control)
+EFFECT.SmokeFadeTimeMult = 0.33        -- the smoke disappears this times as fast as the bullet travelled
+EFFECT.SmokeFadeLagTime = 0.01         -- yeet lags behind tail by X seconds (essentially the fade length control)
 
 EFFECT.DieTime = 0
 EFFECT.Color = Color(255, 255, 255)
@@ -23,7 +24,7 @@ EFFECT.Speed = 5000
 
 local tracer = Material("effects/smoke_trail")  -- actually the bullet tracer but shh
 
-local smoke = CreateMaterial("arccw_trailsmoke_additive3", "UnlitGeneric", {
+local smoke = CreateMaterial("arccw_trailsmoke_additive", "UnlitGeneric", {
     ["$basetexture"] = "trails/smoke",
     --["$nocull"] = true,
     ["$translucent"] = 1,
@@ -31,15 +32,17 @@ local smoke = CreateMaterial("arccw_trailsmoke_additive3", "UnlitGeneric", {
     ["$vertexalpha"] = 1,
     --["$texture2"] = "trails/smoke",
     ["$additive"] = 1,
+    ["$nocull"] = 1
     --["$selfillum"] = 1,
 })
 
 function EFFECT:Init(data)
 
-    local start = data:GetStart()
+    
     local hit = data:GetOrigin()
     local wep = data:GetEntity()
     local speed = data:GetScale()
+    local start = (wep:IsValid() and wep.GetTracerOrigin and wep:GetTracerOrigin()) or data:GetStart()
 
     if speed > 0 then
         self.Speed = speed * (0.9 + math.random() * 0.2)
@@ -65,6 +68,7 @@ function EFFECT:Init(data)
     self.DieTime = ct + self.BulletReachTime + (self.SmokeLagTime + self.SmokeFadeLagTime) / self.SmokeFadeTimeMult
 
     self.Color = ArcCW.BulletProfiles[(profile + 1) or 1] or ArcCW.BulletProfiles[1]
+    self.Color.a = 160
     self.TransparentColor = Color(self.Color.r, self.Color.g, self.Color.b, 0)
 
     -- print(profile)
@@ -74,8 +78,8 @@ function EFFECT:Think()
     return self.DieTime > UnPredictedCurTime()
 end
 
-local transsmoke_color = Color(120, 120, 120, 0)
-local smoke_color = Color(250, 250, 250, 60)
+local transsmoke_color = Color(20, 20, 20, 0)
+local smoke_color = Color(120, 120, 120, 40)
 
 -- smoke trail is split into 3 points:
 -- head (start, where the bullet is)
@@ -144,8 +148,8 @@ function EFFECT:Render()
 
     render.SetMaterial(smoke)
     render.StartBeam(3)
-        render.AddBeam(smokeHeadPos, size * 0.7, scroll, smoke_color)
-        render.AddBeam(tailPos, size * 0.7, headTailTex + scroll, smoke_color)
+        render.AddBeam(smokeHeadPos, size * 0.5, scroll, smoke_color)
+        render.AddBeam(tailPos, size * 0.5, headTailTex + scroll, smoke_color)
         render.AddBeam(yeetPos, 0, headTailTex + tailYeetTex + scroll, transsmoke_color)
     render.EndBeam()
 
@@ -158,7 +162,7 @@ function EFFECT:Render()
     yeetPos:Mul(bulTail)
     yeetPos:Add(self.StartPos)
 
-    local bulsz = math.min( self.BulletLengthSize * (headFrac - bulTail) * self.Dist * size, self.MinBulletSize )
+    local bulsz = math.Clamp( self.BulletLengthSize * (headFrac - bulTail) * self.Dist * size, self.MinBulletSize, self.MaxBulletSize )
 
     --[[render.SetColorMaterialIgnoreZ()
     render.DrawSphere(headPos, 4, 8, 8, color_white)
@@ -166,7 +170,7 @@ function EFFECT:Render()
 
     render.SetMaterial(tracer)
     render.StartBeam(2)
-        render.AddBeam(headPos, bulsz, 1, self.Color)
+        render.AddBeam(headPos, bulsz, 0, self.Color)
         render.AddBeam(yeetPos, 0, 1, self.Color)
     render.EndBeam()
 
